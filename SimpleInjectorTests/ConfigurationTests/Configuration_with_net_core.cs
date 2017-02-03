@@ -49,7 +49,7 @@ namespace SimpleInjectorTests.ConfigurationTests
                 _config = config.Value;
             }
 
-            public TestConfig Config { get => _config; }
+            public TestConfig Config => _config;
         }
     }
 

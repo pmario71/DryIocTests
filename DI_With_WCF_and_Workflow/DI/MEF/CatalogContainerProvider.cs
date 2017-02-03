@@ -17,4 +17,9 @@ namespace DI_With_WCF_and_Workflow.DI.MEF
             return new CompositionContainer(_catalog, CompositionOptions.DisableSilentRejection);
         }
     }
+
+
+    // Implementing Scopes with MEF
+    // http://stackoverflow.com/questions/16943121/defining-scope-in-mef-with-compositionscopedefinition
+
 }

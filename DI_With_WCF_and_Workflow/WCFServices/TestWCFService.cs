@@ -23,6 +23,11 @@ namespace DI_With_WCF_and_Workflow.WCFServices
     [Export(typeof(TestWCFService))]
     public class TestWCFService : ITestWCFService
     {
+        /// <summary>
+        /// Showcases async Transaction flow
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         public async Task<int> ExecuteOperationUsingTransactionAsync(int input)
         {
             using (var scope = new TransactionScope(TransactionScopeOption.Required, 
