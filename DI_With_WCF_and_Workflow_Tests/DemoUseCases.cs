@@ -56,6 +56,33 @@ namespace DI_With_WCF_and_Workflow_Tests
         }
 
         [Test]
+        public async Task Resolved_dependencies_are_disposed()
+        {
+            var p = CreateContainerProvider();
+
+            // hook container creation
+            CompositionContainer container = null;
+            ((CatalogContainerProvider)p).ContainerInstanceCreated = ci => container = ci;
+
+            Uri uri = Helper.UriFromContract<ITestWCFService2>();
+
+            var h = StartHost<ITestWCFService2, TestWCFService2>(p, uri);
+
+
+            var dependency = container.GetExportedValue<IHashcodeProvider>();
+
+            var client = CreateClient<ITestWCFService2>(uri);
+
+            var res = await client.ResolveSharedResourceAsync();
+
+            ((IDisposable)client).Dispose();
+            h.Close();
+
+            Assert.AreEqual(dependency.GetHashCode(), res.DependencyInstanceId, "Dependency was not shared!");
+            Assert.IsTrue(dependency.IsDisposed, "Shared dependency was not disposed!");
+        }
+
+        [Test]
         public async Task Call_operation_which_depends_on_a_shared_resource()
         {
             var p = CreateContainerProvider();

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.Composition.Hosting;
+﻿using System;
+using System.ComponentModel.Composition.Hosting;
 using System.ComponentModel.Composition.Primitives;
 
 namespace DI_With_WCF_and_Workflow.DI.MEF
@@ -6,6 +7,7 @@ namespace DI_With_WCF_and_Workflow.DI.MEF
     public class CatalogContainerProvider : IContainerProvider
     {
         private readonly ComposablePartCatalog _catalog;
+        
 
         public CatalogContainerProvider(ComposablePartCatalog catalog)
         {
@@ -14,8 +16,14 @@ namespace DI_With_WCF_and_Workflow.DI.MEF
 
         public CompositionContainer GetContainer()
         {
-            return new CompositionContainer(_catalog, CompositionOptions.DisableSilentRejection);
+            var container = new CompositionContainer(_catalog, CompositionOptions.DisableSilentRejection);
+
+            ContainerInstanceCreated?.Invoke(container);
+
+            return container;
         }
+
+        public Action<CompositionContainer> ContainerInstanceCreated { set; get; }
     }
 
 
