@@ -1,8 +1,10 @@
 ﻿using DI_With_WCF_and_Workflow;
+using DI_With_WCF_and_Workflow.DI.MEF;
 using DI_With_WCF_and_Workflow.WCFServices;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Composition.Hosting;
 using System.Linq;
 using System.ServiceModel;
 using System.Text;
@@ -13,63 +15,122 @@ namespace DI_With_WCF_and_Workflow_Tests
     [TestFixture(Explicit =true)]
     public class DemoUseCases
     {
-        private Host _host;
-        private List<IDisposable> _clients = new List<IDisposable>();
+        private List<IDisposable> _cleanupList = new List<IDisposable>();
 
         [TearDown]
         public void Dispose()
         {
-            if (_clients.Any())
+            if (_cleanupList.Any())
             {
-                foreach (var c in _clients)
+                _cleanupList.Reverse();
+                foreach (var c in _cleanupList)
                 {
                     c.Dispose();
                 }
-                _clients.Clear();
-            }
-
-            if (_host != null)
-            {
-                _host.Dispose();
-                _host = null;
+                _cleanupList.Clear();
             }
         }
 
         [Test]
         public async Task Call_simple_operation_using_async_API()
         {
-            StartHost();
+            var p = CreateContainerProvider();
+            Uri uri = Helper.UriFromContract<ITestWCFService>();
 
-            var client = CreateClient();
+            var h = StartHost<ITestWCFService,TestWCFService>(p, uri);
+
+            var client = CreateClient(uri);
             await client.ExecuteShortRunningOperationAsync(300);
         }
 
         [Test]
-        public async Task Call_operation_using_transaction()
+        public async Task Call_operation_which_uses_internally_a_transaction()
         {
-            StartHost();
+            var p = CreateContainerProvider();
+            Uri uri = Helper.UriFromContract<ITestWCFService>();
 
-            var client = CreateClient();
+            var h = StartHost<ITestWCFService, TestWCFService>(p, uri);
+
+            var client = CreateClient(uri);
             await client.ExecuteOperationUsingTransactionAsync(300);
         }
 
-        #region Internals
-        private ITestWCFService CreateClient()
+        [Test]
+        public async Task Call_operation_which_depends_on_a_shared_resource()
         {
-            var client = ChannelFactory<ITestWCFService>.CreateChannel(
-                Host.DefaultBinding,
-                new EndpointAddress(_host.Address));
-            _clients.Add((IDisposable)client);
+            var p = CreateContainerProvider();
+            Uri uri = Helper.UriFromContract<ITestWCFService>();
+
+            var h = StartHost<ITestWCFService, TestWCFService>(p, uri);
+
+            var client1 = CreateClient(uri);
+            var client2 = CreateClient(uri);
+
+            var instanceID1 = await client1.ResolveSharedResourceAsync();
+            var instanceID2 = await client2.ResolveSharedResourceAsync();
+
+            Assert.AreNotEqual(instanceID1.ServiceInstanceId, instanceID2.ServiceInstanceId);
+            Assert.AreEqual(instanceID1.DependencyInstanceId, instanceID2.DependencyInstanceId);
+        }
+
+        [Test]
+        public async Task Ressources_are_not_shared_between_different_services()
+        {
+            var p = CreateContainerProvider();
+            Uri uri = Helper.UriFromContract<ITestWCFService>();
+
+            StartHost<ITestWCFService, TestWCFService>(p, uri);
+
+            Uri uri2 = Helper.UriFromContract<ITestWCFService2>();
+            StartHost<ITestWCFService2, TestWCFService2>(p, uri2);
+
+            var client1 = CreateClient(uri);
+            var client2 = CreateClient<ITestWCFService2>(uri2);
+
+            var instanceID1 = await client1.ResolveSharedResourceAsync();
+            var instanceID2 = await client2.ResolveSharedResourceAsync();
+
+            Assert.AreNotEqual(instanceID1.ServiceInstanceId, instanceID2.ServiceInstanceId);
+            Assert.AreNotEqual(instanceID1.DependencyInstanceId, instanceID2.DependencyInstanceId);
+        }
+
+        #region Internals
+        private ITestWCFService CreateClient(Uri uri)
+        {
+            return CreateClient<ITestWCFService>(uri);
+        }
+
+        private TContract CreateClient<TContract>(Uri uri)
+        {
+            var client = ChannelFactory<TContract>.CreateChannel(
+                new NetNamedPipeBinding(),
+                new EndpointAddress(uri));
+
+            _cleanupList.Add((IDisposable)client);
 
             return client;
         }
 
-        private Host StartHost()
+        private IContainerProvider CreateContainerProvider()
         {
-            _host = new Host();
-            _host.Initialize();
+            var cat = new AssemblyCatalog(typeof(TestWCFService).Assembly);
 
-            return _host;
+            var provider = new CatalogContainerProvider(cat);
+            return provider;
+        }
+
+        private ComposedServiceHost StartHost<TContract,TService>(IContainerProvider provider, Uri uri)
+            where TService : TContract
+        {
+            var svcHost = new ComposedServiceHost(typeof(TService), provider);
+
+            svcHost.AddServiceEndpoint(typeof(TContract), new NetNamedPipeBinding(), uri);
+
+            svcHost.Open();
+
+            _cleanupList.Add(svcHost);
+
+            return svcHost;
         }
         #endregion
     }

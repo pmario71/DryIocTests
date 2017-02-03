@@ -11,26 +11,26 @@ using System.Threading.Tasks;
 
 namespace DI_With_WCF_and_Workflow
 {
-    public class Host : IDisposable
+    public class Host<TContract, TService> : IDisposable
+        where TService : TContract
     {
         readonly List<IDisposable> _resources = new List<IDisposable>();
 
         public void Initialize()
         {
-            var cat = new AssemblyCatalog(typeof(Host).Assembly);
+            var cat = new AssemblyCatalog(typeof(Host<TContract, TService>).Assembly);
 
             var provider = new CatalogContainerProvider(cat);
-            OpenService<ITestWCFService,TestWCFService>(provider);
+            OpenService(provider);
         }
 
         public Uri Address { get; private set; }
 
-        private void OpenService<TContract, TService>(IContainerProvider provider)
-            where TService : TContract
+        private void OpenService(IContainerProvider provider)
         {
             var svcHost = new ComposedServiceHost(typeof(TService), provider);
 
-            Uri uri = AddressFromContract<TContract>();
+            Uri uri = AddressFromContract();
             svcHost.AddServiceEndpoint(typeof(TContract), DefaultBinding, uri);
 
             svcHost.Open();
@@ -48,7 +48,7 @@ namespace DI_With_WCF_and_Workflow
         /// <typeparam name="TContract"></typeparam>
         /// <param name="id"></param>
         /// <returns></returns>
-        public static Uri AddressFromContract<TContract>(string id=null)
+        public static Uri AddressFromContract(string id=null)
         {
             string rand = id ?? Guid.NewGuid().ToString();
 

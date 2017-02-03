@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 using DI_With_WCF_and_Workflow.DI.MEF;
 using DI_With_WCF_and_Workflow;
+using DI_With_WCF_and_Workflow.WCFServices;
 
 namespace DI_With_WCF_and_Workflow_Tests.DI.MEF
 {
@@ -24,7 +25,7 @@ namespace DI_With_WCF_and_Workflow_Tests.DI.MEF
             var sut = new ComposedServiceHost(typeof(TestService), provider);
 
             var binding = new NetNamedPipeBinding();
-            var address = Host.AddressFromContract<IService>();
+            var address = Host<ITestWCFService, TestWCFService>.AddressFromContract();
             sut.AddServiceEndpoint(typeof(IService), binding, address);
 
             sut.Open();
@@ -45,7 +46,7 @@ namespace DI_With_WCF_and_Workflow_Tests.DI.MEF
             var sut = new ComposedServiceHost(typeof(TestService), provider);
 
             var binding = new NetNamedPipeBinding();
-            var address = Host.AddressFromContract<IService>();
+            var address = Host<ITestWCFService, TestWCFService>.AddressFromContract();
             sut.AddServiceEndpoint(typeof(IService), binding, address);
 
             sut.Open();
@@ -54,11 +55,7 @@ namespace DI_With_WCF_and_Workflow_Tests.DI.MEF
 
             Assert.AreEqual("cba", (string)proxy.ResolveDependency("abc"));
         }
-
-        private static Uri GetUniqueUri()
-        {
-            return new Uri("net.pipe://localhost/" + "IService" + Guid.NewGuid().ToString());
-        }
+        
 
         class ContainerProvider : IContainerProvider
         {

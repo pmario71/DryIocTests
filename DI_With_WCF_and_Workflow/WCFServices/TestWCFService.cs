@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.ServiceModel;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,11 +19,29 @@ namespace DI_With_WCF_and_Workflow.WCFServices
 
         [OperationContract(Name = "ExecuteOperationUsingTransaction")]
         Task<int> ExecuteOperationUsingTransactionAsync(int input);
+
+        [OperationContract(Name = "ResolveSharedResourceAsync")]
+        Task<DependencyReport> ResolveSharedResourceAsync();
+    }
+
+    [ServiceContract]
+    public interface ITestWCFService2
+    {
+        [OperationContract(Name = "ResolveSharedResourceAsync")]
+        Task<DependencyReport> ResolveSharedResourceAsync();
     }
 
     [Export(typeof(TestWCFService))]
     public class TestWCFService : ITestWCFService
     {
+        private IHashcodeProvider _provider;
+
+        [ImportingConstructor]
+        public TestWCFService(IHashcodeProvider provider)
+        {
+            _provider = provider;
+        }
+
         /// <summary>
         /// Showcases async Transaction flow
         /// </summary>
@@ -48,5 +67,45 @@ namespace DI_With_WCF_and_Workflow.WCFServices
             await Task.Delay(input);
             return 42;
         }
+
+        public Task<DependencyReport> ResolveSharedResourceAsync()
+        {
+            var r = new DependencyReport();
+            r.ServiceInstanceId = this.GetHashCode();
+            r.DependencyInstanceId = _provider.GetInstanceId();
+
+            return Task.FromResult(r);
+        }
+    }
+
+    [Export(typeof(TestWCFService2))]
+    public class TestWCFService2 : ITestWCFService2
+    {
+        private IHashcodeProvider _provider;
+
+        [ImportingConstructor]
+        public TestWCFService2(IHashcodeProvider provider)
+        {
+            _provider = provider;
+        }
+
+        public Task<DependencyReport> ResolveSharedResourceAsync()
+        {
+            var r = new DependencyReport();
+            r.ServiceInstanceId = this.GetHashCode();
+            r.DependencyInstanceId = _provider.GetInstanceId();
+
+            return Task.FromResult(r);
+        }
+    }
+
+    [DataContract]
+    public class DependencyReport
+    {
+        [DataMember]
+        public int ServiceInstanceId { get; set; }
+
+        [DataMember]
+        public int DependencyInstanceId { get; set; }
     }
 }

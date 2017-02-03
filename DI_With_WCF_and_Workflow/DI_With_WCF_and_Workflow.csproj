@@ -55,6 +55,7 @@
     <Compile Include="Host.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="WCFServices\DBOperationsExtensions.cs" />
+    <Compile Include="WCFServices\IHashcodeProvider.cs" />
     <Compile Include="WCFServices\TestWCFService.cs" />
   </ItemGroup>
   <ItemGroup>
