@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using DI_With_WCF_and_Workflow.DI.MEF;
+using DI_With_WCF_and_Workflow;
 
 namespace DI_With_WCF_and_Workflow_Tests.DI.MEF
 {
@@ -16,14 +17,14 @@ namespace DI_With_WCF_and_Workflow_Tests.DI.MEF
     public class ComposedServiceHostTests
     {
 
-        [Test,Explicit("Do not run tests in parallel, because they open the same endpoint!")]
+        [Test]
         public void Can_resolve_dependencies()
         {
             Func<ComposablePartCatalog> provider = () => new AssemblyCatalog(typeof(StringConverter).Assembly);
             var sut = new ComposedServiceHost(typeof(TestService), provider);
 
             var binding = new NetNamedPipeBinding();
-            var address = new Uri("net.pipe://localhost/" + "IService");
+            var address = Host.AddressFromContract<IService>();
             sut.AddServiceEndpoint(typeof(IService), binding, address);
 
             sut.Open();
@@ -33,10 +34,10 @@ namespace DI_With_WCF_and_Workflow_Tests.DI.MEF
             Assert.AreEqual("cba", (string)proxy.ResolveDependency("abc"));
         }
 
-        [Test, Explicit("Do not run tests in parallel, because they open the same endpoint!")]
+        [Test]
         public void Sharing_of_services_is_possible()
         {
-            var container = new CompositionContainer(new AssemblyCatalog(typeof (StringConverter).Assembly),
+            var container = new CompositionContainer(new AssemblyCatalog(typeof(StringConverter).Assembly),
                 CompositionOptions.DisableSilentRejection);
 
             var provider = new ContainerProvider(container);
@@ -44,7 +45,7 @@ namespace DI_With_WCF_and_Workflow_Tests.DI.MEF
             var sut = new ComposedServiceHost(typeof(TestService), provider);
 
             var binding = new NetNamedPipeBinding();
-            var address = new Uri("net.pipe://localhost/" + "IService");
+            var address = Host.AddressFromContract<IService>();
             sut.AddServiceEndpoint(typeof(IService), binding, address);
 
             sut.Open();
@@ -52,6 +53,11 @@ namespace DI_With_WCF_and_Workflow_Tests.DI.MEF
             var proxy = ChannelFactory<IService>.CreateChannel(binding, new EndpointAddress(address));
 
             Assert.AreEqual("cba", (string)proxy.ResolveDependency("abc"));
+        }
+
+        private static Uri GetUniqueUri()
+        {
+            return new Uri("net.pipe://localhost/" + "IService" + Guid.NewGuid().ToString());
         }
 
         class ContainerProvider : IContainerProvider

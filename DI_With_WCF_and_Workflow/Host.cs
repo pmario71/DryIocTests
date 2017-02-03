@@ -13,12 +13,7 @@ namespace DI_With_WCF_and_Workflow
 {
     public class Host : IDisposable
     {
-        List<IDisposable> _resources = new List<IDisposable>();
-
-        public static void Main()
-        {
-
-        }
+        readonly List<IDisposable> _resources = new List<IDisposable>();
 
         public void Initialize()
         {
@@ -28,23 +23,36 @@ namespace DI_With_WCF_and_Workflow
             OpenService<ITestWCFService,TestWCFService>(provider);
         }
 
-        private static void OpenService<TContract, TService>(IContainerProvider provider)
+        public Uri Address { get; private set; }
+
+        private void OpenService<TContract, TService>(IContainerProvider provider)
             where TService : TContract
         {
             var svcHost = new ComposedServiceHost(typeof(TService), provider);
 
-            svcHost.AddServiceEndpoint(typeof(TContract), DefaultBinding, AddressFromContract<TContract>());
+            Uri uri = AddressFromContract<TContract>();
+            svcHost.AddServiceEndpoint(typeof(TContract), DefaultBinding, uri);
 
             svcHost.Open();
+            this.Address = uri;
         }
 
         public static Binding DefaultBinding
         {
             get { return new NetNamedPipeBinding(); }
         }
-        public static Uri AddressFromContract<TContract>()
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="TContract"></typeparam>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public static Uri AddressFromContract<TContract>(string id=null)
         {
-            return new Uri(string.Format("net.pipe://localhost/{0}", typeof(TContract).Name));
+            string rand = id ?? Guid.NewGuid().ToString();
+
+            return new Uri($"net.pipe://localhost/{typeof(TContract).Name}_{rand}");
         }
 
         public void Dispose()
@@ -57,7 +65,8 @@ namespace DI_With_WCF_and_Workflow
             {
                 errors |= SafeDispose(resource);
             }
-            Console.WriteLine("Errors while shutting down!");
+            if (errors)
+                Console.WriteLine("Errors while shutting down!");
         }
 
         private bool SafeDispose(IDisposable resource)

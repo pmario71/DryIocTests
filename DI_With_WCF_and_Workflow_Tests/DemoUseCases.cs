@@ -14,10 +14,20 @@ namespace DI_With_WCF_and_Workflow_Tests
     public class DemoUseCases
     {
         private Host _host;
+        private List<IDisposable> _clients = new List<IDisposable>();
 
         [TearDown]
         public void Dispose()
         {
+            if (_clients.Any())
+            {
+                foreach (var c in _clients)
+                {
+                    c.Dispose();
+                }
+                _clients.Clear();
+            }
+
             if (_host != null)
             {
                 _host.Dispose();
@@ -46,7 +56,12 @@ namespace DI_With_WCF_and_Workflow_Tests
         #region Internals
         private ITestWCFService CreateClient()
         {
-            return ChannelFactory<ITestWCFService>.CreateChannel(Host.DefaultBinding, new EndpointAddress(Host.AddressFromContract<ITestWCFService>()));
+            var client = ChannelFactory<ITestWCFService>.CreateChannel(
+                Host.DefaultBinding,
+                new EndpointAddress(_host.Address));
+            _clients.Add((IDisposable)client);
+
+            return client;
         }
 
         private Host StartHost()
