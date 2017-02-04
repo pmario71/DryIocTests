@@ -4,6 +4,7 @@ using DI_With_WCF_and_Workflow.WCFServices;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Hosting;
 using System.Linq;
 using System.ServiceModel;
@@ -103,6 +104,9 @@ namespace DI_With_WCF_and_Workflow_Tests
         [Test]
         public async Task Ressources_are_not_shared_between_different_services()
         {
+            // test shows in addition that service registrations can be reused across different
+            // service types, while instance lifecycle management is separated
+
             var p = CreateContainerProvider();
             Uri uri = Helper.UriFromContract<ITestWCFService>();
 
@@ -119,6 +123,28 @@ namespace DI_With_WCF_and_Workflow_Tests
 
             Assert.AreNotEqual(instanceID1.ServiceInstanceId, instanceID2.ServiceInstanceId);
             Assert.AreNotEqual(instanceID1.DependencyInstanceId, instanceID2.DependencyInstanceId);
+        }
+
+        [Test]
+        public async Task ServiceRegistrations_can_be_shared_and_overridden_between_different_services()
+        {
+            var cat = new AssemblyCatalog(typeof(TestWCFService).Assembly);
+            var typeCat = new TypeCatalog(new[] { typeof(OverriddenHashcodeProvider) });
+
+            var provider = new CatalogContainerProvider(cat, typeCat);
+
+
+            Uri uri = Helper.UriFromContract<ITestWCFService>();
+
+            StartHost<ITestWCFService, TestWCFService>(provider, uri);
+
+            var client1 = CreateClient(uri);
+
+            var instanceID1 = await client1.ResolveSharedResourceAsync();
+
+
+            // overridden HashcodeProvider returns -1
+            Assert.AreEqual(-1, instanceID1.DependencyInstanceId);
         }
 
         #region Internals
@@ -159,6 +185,19 @@ namespace DI_With_WCF_and_Workflow_Tests
 
             return svcHost;
         }
+
+        [Export(typeof(IHashcodeProvider))]
+        [PartCreationPolicy(CreationPolicy.Shared)]
+        class OverriddenHashcodeProvider : IHashcodeProvider
+        {
+            public int GetInstanceId()
+            {
+                return -1;
+            }
+
+            public bool IsDisposed { get; private set; }
+        }
+
         #endregion
     }
 }

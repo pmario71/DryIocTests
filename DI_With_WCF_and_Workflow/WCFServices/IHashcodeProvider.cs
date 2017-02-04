@@ -14,10 +14,6 @@ namespace DI_With_WCF_and_Workflow.WCFServices
     [PartCreationPolicy(CreationPolicy.Shared)]
     class HashcodeProvider : IHashcodeProvider, IDisposable
     {
-        public HashcodeProvider()
-        {
-        }
-
         public int GetInstanceId()
         {
             return this.GetHashCode();
