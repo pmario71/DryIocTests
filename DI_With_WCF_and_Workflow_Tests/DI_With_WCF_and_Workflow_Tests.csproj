@@ -50,7 +50,7 @@
     <Compile Include="DemoUseCases.cs" />
     <Compile Include="DI\MEF\ComposedServiceHostTests.cs" />
     <Compile Include="DI\MEF\MEFTests.cs" />
-    <Compile Include="Helper.cs" />
+    <Compile Include="Utils\Helper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

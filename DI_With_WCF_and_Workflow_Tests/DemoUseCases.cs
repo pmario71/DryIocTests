@@ -11,6 +11,9 @@ using System.ServiceModel;
 using System.Text;
 using System.Threading.Tasks;
 
+using DI_With_WCF_and_Workflow_Tests.Utils;
+
+
 namespace DI_With_WCF_and_Workflow_Tests
 {
     [TestFixture(Explicit =true)]

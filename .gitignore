@@ -50,3 +50,4 @@ packages
 **/bin
 **/obj
 *.user
+.vs/DependencyInjectionTests/v14/.suo

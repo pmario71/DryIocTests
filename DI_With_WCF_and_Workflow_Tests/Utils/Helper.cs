@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace DI_With_WCF_and_Workflow_Tests
+
+namespace DI_With_WCF_and_Workflow_Tests.Utils
 {
     class Helper
     {
