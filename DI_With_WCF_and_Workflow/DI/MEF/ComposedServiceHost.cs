@@ -19,14 +19,11 @@ namespace DI_With_WCF_and_Workflow.DI.MEF
         /// <param name="serviceType">The type of hosted service.</param>
         /// <param name="catalogProvider">MEF catalog used to resolve dependencies from.</param>
         /// <param name="baseAddresses">An array of type <see cref="T:System.Uri"/> that contains the base addresses for the hosted service.</param>
-        public ComposedServiceHost(Type serviceType, Func<ComposablePartCatalog> catalogProvider, params Uri[] baseAddresses)
+        public ComposedServiceHost(Type serviceType, 
+                                   Func<ComposablePartCatalog> catalogProvider, 
+                                   params Uri[] baseAddresses)
             : this(serviceType, new CatalogContainerProvider(catalogProvider()), baseAddresses)
         {
-            //if (catalogProvider == null)
-            //    throw new ArgumentNullException(nameof(catalogProvider));
-
-            //_serviceType = serviceType ?? throw new ArgumentNullException(nameof(serviceType));
-            //_provider = new CatalogContainerProvider(catalogProvider());
         }
 
         public ComposedServiceHost(Type serviceType, IContainerProvider provider, params Uri[] baseAddresses)
@@ -34,6 +31,7 @@ namespace DI_With_WCF_and_Workflow.DI.MEF
         {
             if (serviceType == null)
                     throw new ArgumentNullException(nameof(serviceType));
+
             if (provider == null)
                 throw new ArgumentNullException(nameof(provider));
 
@@ -51,13 +49,13 @@ namespace DI_With_WCF_and_Workflow.DI.MEF
                 Description.Behaviors.Add(new ComposedServiceBehavior(_serviceType, _provider));
             }
 
-            var debugBehavior = Description.Behaviors.Find<ServiceDebugBehavior>();
-            if (debugBehavior == null)
-            {
-                debugBehavior=new ServiceDebugBehavior();
-                Description.Behaviors.Add(debugBehavior);
-            }
-            debugBehavior.IncludeExceptionDetailInFaults = true;
+            //var debugBehavior = Description.Behaviors.Find<ServiceDebugBehavior>();
+            //if (debugBehavior == null)
+            //{
+            //    debugBehavior=new ServiceDebugBehavior();
+            //    Description.Behaviors.Add(debugBehavior);
+            //}
+            //debugBehavior.IncludeExceptionDetailInFaults = true;
 
             base.OnOpening();
         }

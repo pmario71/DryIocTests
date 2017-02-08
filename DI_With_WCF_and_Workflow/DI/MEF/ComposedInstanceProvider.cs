@@ -34,7 +34,7 @@ namespace DI_With_WCF_and_Workflow.DI.MEF
 
             if (export == null)
             {
-                string msg = string.Format("Failed to instantiate type '{0}'! Most likely it is not declared as export!", _serviceType.Name);
+                string msg = $"Failed to instantiate type '{_serviceType.Name}'! Most likely it is not declared as export!";
                 throw new InvalidOperationException(msg);
             }
 

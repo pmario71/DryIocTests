@@ -11,13 +11,13 @@ namespace DI_With_WCF_and_Workflow.DI.MEF
     {
         private readonly ComposablePartCatalog[] _catalogs;
         private readonly TypeCatalog _rootCat = new TypeCatalog(new[] { typeof(DisposeTracker) });
-        
+
         /// <summary>
         /// Creates a ContainerProvider that uses a hierarchy of catalogs to initialize each
         /// container instance it creates.
         /// Types exported from catalogs later in the sequence, do override previously registered types.
         /// </summary>
-        /// <param name="overrideCatalogs"></param>
+        /// <param name="catalogHierarchy"></param>
         public CatalogContainerProvider(
             params ComposablePartCatalog[] catalogHierarchy)
         {
@@ -28,10 +28,9 @@ namespace DI_With_WCF_and_Workflow.DI.MEF
         {
             CatalogExportProvider[] wrappedCatalogs = WrapCatalogsIntoExportProviders(_catalogs);
 
-            var container = new CompositionContainer(
-                _rootCat,
-                CompositionOptions.DisableSilentRejection,
-                wrappedCatalogs);
+            var container = new CompositionContainer(_rootCat,
+                                                     CompositionOptions.DisableSilentRejection,
+                                                     wrappedCatalogs);
 
             var tracker = container.GetExportedValue<DisposeTracker>();
 
