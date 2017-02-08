@@ -167,7 +167,7 @@ namespace DI_With_WCF_and_Workflow_Tests
             return client;
         }
 
-        private IContainerProvider CreateContainerProvider()
+        public static IContainerProvider CreateContainerProvider()
         {
             var cat = new AssemblyCatalog(typeof(TestWCFService).Assembly);
 
