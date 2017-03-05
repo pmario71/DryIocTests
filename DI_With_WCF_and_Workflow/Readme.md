@@ -78,3 +78,8 @@ client.SubscribeToChangeNotifications(rqh);
 * risk of missed callbacks! Resync necessary
   * more details required how to do Resync
   * Queries return lates information, while events a async and can lag behind
+
+# MEF
+
+* parts created as `nonshared` need to be released from Container otherwise they will be referenced by the Container until its disposal.
+* Using MEF in a highly parallel environment leaves leaking objects if CompositionContainer is not created with `CompositionOptions.IsThreadSafe`

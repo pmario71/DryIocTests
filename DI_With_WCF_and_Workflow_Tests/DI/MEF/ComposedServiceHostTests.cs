@@ -6,11 +6,13 @@ using System.ComponentModel.Composition.Primitives;
 using System.Linq;
 using System.ServiceModel;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using DI_With_WCF_and_Workflow.DI.MEF;
 using DI_With_WCF_and_Workflow;
 using DI_With_WCF_and_Workflow.WCFServices;
+using JetBrains.dotMemoryUnit;
 
 namespace DI_With_WCF_and_Workflow_Tests.DI.MEF
 {
@@ -22,7 +24,7 @@ namespace DI_With_WCF_and_Workflow_Tests.DI.MEF
         public void Can_resolve_dependencies()
         {
             Func<ComposablePartCatalog> provider = () => new AssemblyCatalog(typeof(StringConverter).Assembly);
-            var sut = new ComposedServiceHost(typeof(TestService), provider);
+            var sut = new ComposedServiceHost<TestService>(provider);
 
             var binding = new NetNamedPipeBinding();
             var address = Host<ITestWCFService, TestWCFService>.AddressFromContract();
@@ -43,7 +45,7 @@ namespace DI_With_WCF_and_Workflow_Tests.DI.MEF
 
             var provider = new ContainerProvider(container);
 
-            var sut = new ComposedServiceHost(typeof(TestService), provider);
+            var sut = new ComposedServiceHost<TestService>(provider);
 
             var binding = new NetNamedPipeBinding();
             var address = Host<ITestWCFService, TestWCFService>.AddressFromContract();
@@ -55,7 +57,47 @@ namespace DI_With_WCF_and_Workflow_Tests.DI.MEF
 
             Assert.AreEqual("cba", (string)proxy.ResolveDependency("abc"));
         }
-        
+
+        [Test, Explicit]
+        [DotMemoryUnit(FailIfRunWithoutSupport = false)]
+        public void Ressources_are_freed_again()
+        {
+            Func<ComposablePartCatalog> provider = () => new AssemblyCatalog(typeof(StringConverter).Assembly);
+            var sut = new ComposedServiceHost<TestService>(provider);
+
+            var binding = new NetNamedPipeBinding();
+            var address = Host<ITestWCFService, TestWCFService>.AddressFromContract();
+            sut.AddServiceEndpoint(typeof(IService), binding, address);
+
+            sut.Open();
+
+            //for (int i = 0; i < 2000; i++)
+            //{
+            //    CreateClientAndCallService(binding, address);
+            //}
+
+            Parallel.For(0, 2000, _ =>
+            {
+                CreateClientAndCallService(binding, address);
+            });
+
+            Thread.Sleep(1000);
+
+            dotMemory.Check(memory =>
+            {
+                Assert.That(memory.GetObjects(where => where.Type.Is<TestService>()).ObjectsCount, Is.EqualTo(1));
+            } );
+        }
+
+        private static void CreateClientAndCallService(NetNamedPipeBinding binding, Uri address)
+        {
+            var proxy = ChannelFactory<IService>.CreateChannel(binding, new EndpointAddress(address));
+
+            proxy.ResolveDependency("abc");
+
+            var d = (IDisposable)proxy;
+            d.Dispose();
+        }
 
         class ContainerProvider : IContainerProvider
         {

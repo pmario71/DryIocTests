@@ -28,7 +28,7 @@ namespace DI_With_WCF_and_Workflow
 
         private void OpenService(IContainerProvider provider)
         {
-            var svcHost = new ComposedServiceHost(typeof(TService), provider);
+            var svcHost = new ComposedServiceHost<TService>(provider);
 
             Uri uri = AddressFromContract();
             svcHost.AddServiceEndpoint(typeof(TContract), DefaultBinding, uri);

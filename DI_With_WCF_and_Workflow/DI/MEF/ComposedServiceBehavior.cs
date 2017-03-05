@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Primitives;
 using System.ServiceModel;
 using System.ServiceModel.Channels;
@@ -8,16 +9,18 @@ using System.ServiceModel.Dispatcher;
 
 namespace DI_With_WCF_and_Workflow.DI.MEF
 {
-    internal class ComposedServiceBehavior : IServiceBehavior
+    internal class ComposedServiceBehavior<T> : IServiceBehavior
     {
         private readonly IInstanceProvider _instanceProvider;
 
-        public ComposedServiceBehavior(Type serviceType, IContainerProvider container)
+        public ComposedServiceBehavior(IContainerProvider container)
         {
             if (container == null)
                 throw new ArgumentNullException(nameof(container));
 
-            _instanceProvider = new ComposedInstanceProvider(serviceType, container);
+            _instanceProvider = new ComposedInstanceProvider<T>();
+
+            container.GetContainer().ComposeParts(_instanceProvider);
         }
 
         public void Validate(ServiceDescription serviceDescription, ServiceHostBase serviceHostBase)

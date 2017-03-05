@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.ComponentModel.Composition.Hosting;
@@ -14,31 +15,25 @@ namespace DI_With_WCF_and_Workflow.DI.MEF
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable", 
         Justification = "WCF does not use IDisposable but calls ReleaseInstance() to trigger freeing of resources.")]
-    internal class ComposedInstanceProvider : IInstanceProvider
+    [Export(typeof(ComposedInstanceProvider<>))]
+    internal class ComposedInstanceProvider<T> : IInstanceProvider
     {
-        private readonly Type                 _serviceType;
-        private readonly CompositionContainer _container;
+        readonly ConcurrentDictionary<int,IDisposable> _disposables = new ConcurrentDictionary<int, IDisposable>();
 
-        public ComposedInstanceProvider(Type serviceType, IContainerProvider containerProvider)
+        [Import]
+        private ExportFactory<T> _exportFactory;
+
+        [ImportingConstructor]
+        public ComposedInstanceProvider()
         {
-            if (containerProvider == null)
-                throw new ArgumentNullException(nameof(containerProvider));
-
-            _serviceType = serviceType;
-            _container = containerProvider.GetContainer();
         }
 
         public object GetInstance(InstanceContext context)
         {
-            Export export = GetServiceExport();
+            ExportLifetimeContext<T> exportLifetimeContext = _exportFactory.CreateExport();
+            _disposables.AddOrUpdate(context.GetHashCode(), _ => exportLifetimeContext, (a,b) => exportLifetimeContext);
 
-            if (export == null)
-            {
-                string msg = string.Format("Failed to instantiate type '{0}'! Most likely it is not declared as export!", _serviceType.Name);
-                throw new InvalidOperationException(msg);
-            }
-
-            return export.Value;
+            return exportLifetimeContext.Value;
         }
 
         public object GetInstance(InstanceContext context, Message message)
@@ -48,26 +43,11 @@ namespace DI_With_WCF_and_Workflow.DI.MEF
 
         public void ReleaseInstance(InstanceContext context, object instance)
         {
-            var disposable = instance as IDisposable;
-
-            if (disposable != null)
-                disposable.Dispose();
-
-            _container.Dispose();
-        }
-
-        private Export GetServiceExport()
-        {
-            var importDefinition
-                = new ContractBasedImportDefinition(AttributedModelServices.GetContractName(_serviceType),
-                    AttributedModelServices.GetTypeIdentity(_serviceType),
-                    null,
-                    ImportCardinality.ZeroOrMore,
-                    true,
-                    true,
-                    CreationPolicy.NonShared);
-
-            return _container.GetExports(importDefinition).FirstOrDefault();
+            IDisposable d;
+            if (_disposables.TryRemove(context.GetHashCode(), out d))
+            {
+                d.Dispose();
+            }
         }
     }
 }

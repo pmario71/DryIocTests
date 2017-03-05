@@ -30,7 +30,7 @@ namespace DI_With_WCF_and_Workflow.DI.MEF
 
             var container = new CompositionContainer(
                 _rootCat,
-                CompositionOptions.DisableSilentRejection,
+                CompositionOptions.DisableSilentRejection|CompositionOptions.IsThreadSafe,
                 wrappedCatalogs);
 
             var tracker = container.GetExportedValue<DisposeTracker>();

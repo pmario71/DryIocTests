@@ -172,10 +172,10 @@ namespace DI_With_WCF_and_Workflow_Tests
             return provider;
         }
 
-        private ComposedServiceHost StartHost<TContract,TService>(IContainerProvider provider, Uri uri)
+        private ComposedServiceHost<TService> StartHost<TContract,TService>(IContainerProvider provider, Uri uri)
             where TService : TContract
         {
-            var svcHost = new ComposedServiceHost(typeof(TService), provider);
+            var svcHost = new ComposedServiceHost<TService>(provider);
 
             svcHost.AddServiceEndpoint(typeof(TContract), new NetNamedPipeBinding(), uri);
 
